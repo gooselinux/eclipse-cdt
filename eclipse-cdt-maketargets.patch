@@ -1,0 +1,243 @@
+### Eclipse Workspace Patch 1.0
+#P org.eclipse.cdt.make.core
+Index: src/org/eclipse/cdt/make/core/IMakeTargetManager.java
+===================================================================
+RCS file: /cvsroot/tools/org.eclipse.cdt/all/org.eclipse.cdt.make.core/src/org/eclipse/cdt/make/core/IMakeTargetManager.java,v
+retrieving revision 1.16
+diff -u -r1.16 IMakeTargetManager.java
+--- src/org/eclipse/cdt/make/core/IMakeTargetManager.java	14 Jun 2007 19:00:48 -0000	1.16
++++ src/org/eclipse/cdt/make/core/IMakeTargetManager.java	1 Feb 2010 18:59:59 -0000
+@@ -1,5 +1,5 @@
+ /*******************************************************************************
+- * Copyright (c) 2000, 2007 QNX Software Systems and others.
++ * Copyright (c) 2000, 2007, 2010 QNX Software Systems and others.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+@@ -7,6 +7,7 @@
+  *
+  * Contributors:
+  *     QNX Software Systems - Initial API and implementation
++ *     Red Hat Inc - Add setTargets method
+  *******************************************************************************/
+ package org.eclipse.cdt.make.core;
+ 
+@@ -14,6 +15,12 @@
+ import org.eclipse.core.resources.IProject;
+ import org.eclipse.core.runtime.CoreException;
+ 
++/**
++ * MakeTarget Manager interface.
++ * 
++ * @noimplement This interface is not intended to be implemented by clients.
++ * @noextend This interface is not intended to be extended by clients.
++ */
+ public interface IMakeTargetManager {
+ 	IMakeTarget createTarget(IProject project, String targetName, String targetBuilderID) throws CoreException;
+ 	/**
+@@ -24,7 +31,8 @@
+ 	void addTarget(IMakeTarget target) throws CoreException;
+ 	
+ 	/**
+-	 * Adds target to manager on a specific projects folder. 
++	 * Adds target to manager on a specific projects folder. It is assumed
++	 * that the target and container belong to the same project.
+ 	 * @param container
+ 	 * @param target
+ 	 * @throws CoreException
+@@ -33,6 +41,21 @@
+ 	void removeTarget(IMakeTarget target) throws CoreException;
+ 	void renameTarget(IMakeTarget target, String name) throws CoreException;
+ 	
++	/**
++	 * Set targets on a specific projects folder.  It is assumed
++	 * all targets and container belong to the same project which
++	 * is determined from the first element of the
++	 * targets array.  If no container is specified, the project is used.
++	 * All previous targets for the container are replaced upon success and if
++	 * failure occurs, an exception is thrown and the previous set of targets
++	 * for the container are unchanged.
++	 * 
++	 * @param container to set targets for or null if project should be used
++	 * @param targets array
++	 * @throws CoreException
++	 */
++	public void setTargets(IContainer container, IMakeTarget[] targets) throws CoreException;
++	
+ 	boolean targetExists(IMakeTarget target);
+ 	
+ 	IMakeTarget[] getTargets(IContainer container) throws CoreException;
+Index: src/org/eclipse/cdt/make/core/MakeTargetEvent.java
+===================================================================
+RCS file: /cvsroot/tools/org.eclipse.cdt/all/org.eclipse.cdt.make.core/src/org/eclipse/cdt/make/core/MakeTargetEvent.java,v
+retrieving revision 1.10
+diff -u -r1.10 MakeTargetEvent.java
+--- src/org/eclipse/cdt/make/core/MakeTargetEvent.java	11 Feb 2009 19:26:11 -0000	1.10
++++ src/org/eclipse/cdt/make/core/MakeTargetEvent.java	1 Feb 2010 18:59:59 -0000
+@@ -1,5 +1,5 @@
+ /*******************************************************************************
+- * Copyright (c) 2000, 2007 QNX Software Systems and others.
++ * Copyright (c) 2000, 2007, 2010 QNX Software Systems and others.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+@@ -7,6 +7,7 @@
+  *
+  * Contributors:
+  *     QNX Software Systems - Initial API and implementation
++ *     Red Hat Inc. - Allow multiple targets
+  *******************************************************************************/
+ package org.eclipse.cdt.make.core;
+ 
+@@ -15,7 +16,7 @@
+ import org.eclipse.core.resources.IProject;
+ 
+ public class MakeTargetEvent extends EventObject {
+-	private static final long serialVersionUID = 1L;
++	private static final long serialVersionUID = 2L;
+ 
+ 	public static final int TARGET_ADD = 1;
+ 	public static final int TARGET_CHANGED = 2;
+@@ -23,7 +24,7 @@
+ 	public static final int PROJECT_ADDED = 4;
+ 	public static final int PROJECT_REMOVED = 5;
+ 
+-	IMakeTarget target;
++	IMakeTarget[] targets;
+ 	IProject project;
+ 	int type;
+ 
+@@ -33,7 +34,20 @@
+ 	public MakeTargetEvent(Object source, int type, IMakeTarget target) {
+ 		super(source);
+ 		this.type = type;
+-		this.target = target;
++		this.targets = new IMakeTarget[] {target};
++	}
++
++	/**
++	 * @param source
++	 * @param type event type (e.g. TARGET_ADD, TARGET_CHANGED)
++	 * @param targets array of MakeTargets
++	 * 
++	 */
++	public MakeTargetEvent(Object source, int type, IMakeTarget[] targets) {
++		super(source);
++		this.type = type;
++		this.targets = new IMakeTarget[targets.length];
++		System.arraycopy(targets, 0, this.targets, 0, targets.length);
+ 	}
+ 
+ 	public MakeTargetEvent(Object source, int type, IProject project) {
+@@ -46,7 +60,16 @@
+ 		return type;
+ 	}
+ 
++	/*
++	 * @deprecated
++	 * Use getTargets() instead.
++	 */
++	@Deprecated
+ 	public IMakeTarget getTarget() {
+-		return target;
++		return targets[0];
++	}
++	
++	public IMakeTarget[] getTargets() {
++		return targets;
+ 	}
+ }
+Index: src/org/eclipse/cdt/make/internal/core/ProjectTargets.java
+===================================================================
+RCS file: /cvsroot/tools/org.eclipse.cdt/all/org.eclipse.cdt.make.core/src/org/eclipse/cdt/make/internal/core/ProjectTargets.java,v
+retrieving revision 1.30
+diff -u -r1.30 ProjectTargets.java
+--- src/org/eclipse/cdt/make/internal/core/ProjectTargets.java	18 Mar 2009 17:44:47 -0000	1.30
++++ src/org/eclipse/cdt/make/internal/core/ProjectTargets.java	1 Feb 2010 18:59:59 -0000
+@@ -1,5 +1,5 @@
+ /*******************************************************************************
+- * Copyright (c) 2000, 2008 QNX Software Systems and others.
++ * Copyright (c) 2000, 2008, 2010 QNX Software Systems and others.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+@@ -8,6 +8,7 @@
+  * Contributors:
+  *     QNX Software Systems - Initial API and implementation
+  *     James Blackburn (Broadcom Corp.) - Use ICStorageElement
++ *     Red Hat Inc. - Add set method
+  *******************************************************************************/
+ package org.eclipse.cdt.make.internal.core;
+ 
+@@ -108,6 +109,20 @@
+ 		return new IMakeTarget[0];
+ 	}
+ 
++	public void set(IContainer container, IMakeTarget[] targets) throws CoreException {
++		List<IMakeTarget> newList = new ArrayList<IMakeTarget>();
++		for (int i = 0; i < targets.length; ++i) {
++			IMakeTarget target = targets[i];
++			target.setContainer(container);
++			if (newList.contains(target)) {
++				throw new CoreException(new Status(IStatus.ERROR, MakeCorePlugin.getUniqueIdentifier(), -1,
++						MakeMessages.getString("MakeTargetManager.target_exists"), null)); //$NON-NLS-1$
++			}
++			newList.add(target);
++		}
++		targetMap.put(container, newList);
++	}
++
+ 	public IMakeTarget findTarget(IContainer container, String name) {
+ 		List<IMakeTarget> list = targetMap.get(container);
+ 		if (list != null) {
+Index: src/org/eclipse/cdt/make/internal/core/MakeTargetManager.java
+===================================================================
+RCS file: /cvsroot/tools/org.eclipse.cdt/all/org.eclipse.cdt.make.core/src/org/eclipse/cdt/make/internal/core/MakeTargetManager.java,v
+retrieving revision 1.29
+diff -u -r1.29 MakeTargetManager.java
+--- src/org/eclipse/cdt/make/internal/core/MakeTargetManager.java	12 Mar 2009 18:21:04 -0000	1.29
++++ src/org/eclipse/cdt/make/internal/core/MakeTargetManager.java	1 Feb 2010 18:59:59 -0000
+@@ -1,5 +1,5 @@
+ /*******************************************************************************
+- * Copyright (c) 2000, 2007 QNX Software Systems and others.
++ * Copyright (c) 2000, 2007, 2010 QNX Software Systems and others.
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+@@ -7,6 +7,7 @@
+  *
+  * Contributors:
+  *     QNX Software Systems - Initial API and implementation
++ *     Red Hat Inc. - add setTargets method
+  *******************************************************************************/
+ package org.eclipse.cdt.make.internal.core;
+ 
+@@ -81,6 +82,28 @@
+ 		notifyListeners(new MakeTargetEvent(this, MakeTargetEvent.TARGET_ADD, target));
+ 	}
+ 
++	public void setTargets(IContainer container, IMakeTarget[] targets) throws CoreException {
++		if (container instanceof IWorkspaceRoot) {
++			throw new CoreException(new Status(IStatus.ERROR, MakeCorePlugin.getUniqueIdentifier(), -1, MakeMessages.getString("MakeTargetManager.add_to_workspace_root"), null)); //$NON-NLS-1$
++		}
++		ProjectTargets projectTargets = projectMap.get(targets[0].getProject());
++		if (projectTargets == null) {
++			projectTargets = readTargets(targets[0].getProject());
++		}
++		if (container == null)
++			container = targets[0].getProject();
++		IMakeTarget[] oldTargets = projectTargets.get(container);
++		projectTargets.set(container, targets);
++		try {
++			writeTargets(projectTargets);
++		} catch (CoreException e) {
++			// we only need to reset the targets if writing of targets fails
++			projectTargets.set(container, oldTargets);
++			throw e;
++		}
++		notifyListeners(new MakeTargetEvent(this, MakeTargetEvent.TARGET_ADD, targets[0]));
++	}
++
+ 	public boolean targetExists(IMakeTarget target) {
+ 		ProjectTargets projectTargets = projectMap.get(target.getProject());
+ 		if (projectTargets == null) {

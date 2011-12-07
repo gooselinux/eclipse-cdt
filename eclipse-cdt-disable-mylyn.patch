@@ -1,0 +1,13 @@
+--- org.eclipse.cdt.releng/results/features/org.eclipse.cdt.master/feature.xml.orig	2009-06-23 23:07:50.000000000 +0300
++++ org.eclipse.cdt.releng/results/features/org.eclipse.cdt.master/feature.xml	2009-10-28 12:46:20.635310276 +0200
+@@ -74,10 +74,6 @@
+          version="0.0.0"/>
+ 
+    <includes
+-         id="org.eclipse.cdt.mylyn"
+-         version="0.0.0"/>
+-
+-   <includes
+          id="org.eclipse.cdt.gnu.dsf"
+          version="0.0.0"/>
+ 

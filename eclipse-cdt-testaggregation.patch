@@ -1,0 +1,23 @@
+diff -up ./org.eclipse.cdt.testing/test.xml.testaggregation ./org.eclipse.cdt.testing/test.xml
+--- ./org.eclipse.cdt.testing/test.xml.testaggregation	2008-08-21 11:49:07.000000000 -0400
++++ ./org.eclipse.cdt.testing/test.xml	2008-08-21 11:53:39.000000000 -0400
+@@ -14,10 +14,18 @@
+ 	</target>
+ 
+ 	<target name="run" depends="init,suite">
+-		<ant target="collect" antfile="${library-file}" dir="${eclipse-home}">
++		<mkdir dir="${results}/xml"/>
++		<mkdir dir="${results}/html"/>
++		<ant target="collect" antfile="${library-file}" dir="${results}/xml">
+ 			<property name="includes" value="org*.xml"/>
+ 			<property name="output-file" value="org.eclipse.cdt.testing.xml"/>
+ 		</ant>
++                <copy todir="${results}/xml">
++			<fileset dir="${results}">
++			   <include name="**/org.eclipse.cdt*.xml"/>
++			</fileset>
++		</copy>
++         	<style style="${eclipse-home}/dropins/sdk/plugins/org.eclipse.test/JUNIT.XSL" basedir="${results}/xml" destdir="${results}/html" />
+ 	</target>
+ 
+ 	<target name="cdt-core" depends="init">

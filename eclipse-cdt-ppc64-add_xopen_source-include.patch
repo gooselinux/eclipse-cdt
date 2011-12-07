@@ -1,0 +1,22 @@
+#define of _XOPEN_SOURCE is needed to obtain the header for ptsname.
+
+if _XOPEN_SOURCE is not defined before including stdlib.h, a warning about
+a assignment from an integer to a pointer without a cast will occur.  This
+warning could actually cause problems in some circumstances, because the
+upper bits of the return value could, potentially, be set to zero before
+the assignment is made.
+Index: library/openpty.c
+===================================================================
+--- library.orig/openpty.c
++++ library/openpty.c
+@@ -8,6 +8,10 @@
+  * Contributors:
+  *     QNX Software Systems - initial API and implementation
+  *******************************************************************************/
++
++
++/* _XOPEN_SOURCE is needed to bring in the header for ptsname */
++#define _XOPEN_SOURCE
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>

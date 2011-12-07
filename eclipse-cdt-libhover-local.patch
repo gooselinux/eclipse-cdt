@@ -1,0 +1,37 @@
+diff -up ./org.eclipse.linuxtools.cdt.libhover/build.properties.fix ./org.eclipse.linuxtools.cdt.libhover/build.properties
+--- ./org.eclipse.linuxtools.cdt.libhover/build.properties.fix	2009-09-23 17:07:18.000000000 -0400
++++ ./org.eclipse.linuxtools.cdt.libhover/build.properties	2009-09-23 17:07:38.000000000 -0400
+@@ -3,7 +3,8 @@ output.. = bin/
+ bin.includes = plugin.xml,\
+                META-INF/,\
+                .,\
+-               plugin.properties
++               plugin.properties,\
++               libhoverdocs/
+ 
+ javacSource=1.5
+ javacTarget=1.5
+diff -up ./org.eclipse.linuxtools.cdt.libhover.glibc/plugin.xml.fix ./org.eclipse.linuxtools.cdt.libhover.glibc/plugin.xml
+--- ./org.eclipse.linuxtools.cdt.libhover.glibc/plugin.xml.fix	2009-09-23 17:12:01.000000000 -0400
++++ ./org.eclipse.linuxtools.cdt.libhover.glibc/plugin.xml	2009-09-23 17:12:26.000000000 -0400
+@@ -7,7 +7,7 @@
+          point="org.eclipse.linuxtools.cdt.libhover.library">
+       <library
+             docs="http://www.gnu.org/software/libc/manual/html_node/index.html"
+-            location="http://www.sourceware.org/eclipse/libhover/glibc-2.7-2.libhover"
++            location="libhoverdocs/glibc-2.7-2.libhover"
+             name="glibc library"
+             type="C">
+       </library>
+diff -up ./org.eclipse.linuxtools.cdt.libhover.libstdcxx/plugin.xml.fix ./org.eclipse.linuxtools.cdt.libhover.libstdcxx/plugin.xml
+--- ./org.eclipse.linuxtools.cdt.libhover.libstdcxx/plugin.xml.fix	2009-09-23 17:12:43.000000000 -0400
++++ ./org.eclipse.linuxtools.cdt.libhover.libstdcxx/plugin.xml	2009-09-23 17:13:04.000000000 -0400
+@@ -7,7 +7,7 @@
+          point="org.eclipse.linuxtools.cdt.libhover.library">
+       <library
+             docs="http://gcc.gnu.org/onlinedocs/libstdc++/manual/spine.html"
+-            location="http://www.sourceware.org/eclipse/libhover/libstdc++-v3.libhover"
++            location="libhoverdocs/libstdc++-v3.libhover"
+             name="libstdc++ library"
+             type="C++">
+       </library>
